@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>منصة إدارة وتنسيق الحملات التطوعية والإنقاذ المجتمعي | ولاية بني عباس</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- مكتبة الخرائط التفاعلية Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- مكتبات Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <!-- مكتبات QR Code -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+  <style>
+    :root {
+      --nav-bg: #0d382d;
+      --hero-green-1: #0f8f74;
+      --hero-green-2: #0b735c;
+      --body-bg: #f8fafc;
+      --text-dark: #1e293b;
+      --text-muted: #64748b;
+      --border-light: #e2e8f0;
+      --tag-green-bg: #dcfce7;
+      --tag-green-text: #15803d;
+      --tag-red-bg: #fee2e2;
+      --tag-red-text: #b91c1c;
+      --tag-blue-bg: #e0f2fe;
+      --tag-blue-text: #0369a1;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Tajawal', 'Cairo', sans-serif; }
+    body { background-color: var(--body-bg); color: var(--text-dark); direction: rtl; }
+
+    /* شاشة الدخول */
+    #auth-screen {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: radial-gradient(circle at 10% 20%, #1e293b 0%, #0d382d 90%);
+      display: flex; align-items: center; justify-content: center; z-index: 99999; padding: 1rem;
+    }
+    .auth-card-box {
+      background: #ffffff; border-radius: 16px; width: 100%; max-width: 440px;
+      padding: 2.2rem; box-shadow: 0 20px 50px rgba(0,0,0,0.3); text-align: center;
+    }
+    .auth-card-box .emblem {
+      background: #dcfce7; color: #0f8f74; width: 60px; height: 60px;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 1.8rem; margin: 0 auto 1rem;
+    }
+    .auth-toggle-btns { display: flex; margin-bottom: 1.2rem; border-bottom: 2px solid #e2e8f0; }
+    .auth-toggle-btns button {
+      flex: 1; padding: 0.6rem; border: none; background: none; font-weight: 700;
+      font-size: 0.9rem; color: #64748b; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px;
+    }
+    .auth-toggle-btns button.active { color: #0f8f74; border-bottom-color: #0f8f74; }
+    .auth-error-msg { background: #fee2e2; color: #b91c1c; padding: 0.6rem; border-radius: 6px; font-size: 0.82rem; margin-bottom: 1rem; display: none; }
+
+    #main-app-screen { display: none; }
+
+    /* الشريط العلوي */
+    .top-navbar {
+      background-color: var(--nav-bg); min-height: 65px; display: flex;
+      align-items: center; padding: 0.5rem 1.5rem; box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+      position: sticky; top: 0; z-index: 999;
+    }
+    .nav-container {
+      max-width: 1300px; width: 100%; margin: 0 auto; display: flex;
+      align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;
+    }
+    .nav-brand { display: flex; align-items: center; gap: 0.6rem; color: #fff; cursor: pointer; }
+    .brand-name { font-size: 1.35rem; font-weight: 800; }
+    .brand-logo-icon {
+      background: #10b981; color: #fff; width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .nav-links { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+    .nav-tab-btn {
+      background: none; border: none; color: #cbd5e1; font-size: 0.92rem; font-weight: 700;
+      display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.85rem; border-radius: 6px;
+      cursor: pointer; transition: 0.2s;
+    }
+    .nav-tab-btn:hover { color: #34d399; background: rgba(255,255,255,0.06); }
+    .nav-tab-btn.active { color: #fff; background: #0f8f74; }
+
+    .nav-user-area { display: flex; align-items: center; gap: 0.8rem; }
+    .user-rank-badge {
+      background-color: #134e40; color: #f1f5f9; border: 1px solid #10b981;
+      border-radius: 20px; padding: 0.35rem 0.8rem; font-size: 0.82rem; font-weight: 700;
+    }
+    .logout-btn-visible {
+      background-color: #ef4444; color: #ffffff; border: none; padding: 0.45rem 1.1rem;
+      border-radius: 6px; font-size: 0.85rem; font-weight: 800; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 0.4rem; transition: 0.2s;
+    }
+    .logout-btn-visible:hover { background-color: #dc2626; }
+
+    /* الأقسام والمحتوى */
+    .page-content { max-width: 1200px; margin: 1.5rem auto 3rem; padding: 0 1rem; }
+    .app-section { display: none; }
+    .app-section.active { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* بانر الرئيسية */
+    .hero-banner {
+      background: linear-gradient(135deg, var(--hero-green-1) 0%, var(--hero-green-2) 100%);
+      border-radius: 18px; padding: 3.5rem 2rem; color: #fff; text-align: center;
+    }
+    .hero-inner { max-width: 900px; margin: 0 auto; }
+    .sub-badge {
+      display: inline-block; background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.3);
+      padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.82rem; font-weight: 700; margin-bottom: 0.8rem;
+    }
+    .hero-title { font-size: 2rem; font-weight: 800; margin-bottom: 0.8rem; line-height: 1.3; }
+    .hero-description { font-size: 1.05rem; color: #e6fffa; margin-bottom: 0.5rem; line-height: 1.6; }
+    .hero-quote { font-size: 0.95rem; color: #bbf7d0; font-weight: 700; margin-bottom: 2rem; }
+    .hero-buttons { display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; }
+    .btn-hero-white {
+      background-color: #ffffff; color: #0b735c; border: none; border-radius: 8px;
+      padding: 0.8rem 1.8rem; font-size: 0.95rem; font-weight: 800; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    }
+    .btn-hero-outline {
+      background: transparent; color: #ffffff; border: 1.5px solid #fff; border-radius: 8px;
+      padding: 0.8rem 1.8rem; font-size: 0.95rem; font-weight: 700; cursor: pointer;
+    }
+
+    /* الإحصائيات (0) */
+    .stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.2rem; margin: 2.2rem 0; }
+    .stat-box { background: #ffffff; border: 1px solid var(--border-light); border-radius: 12px; padding: 1.4rem; text-align: center; }
+    .stat-top { display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 0.3rem; }
+    .stat-num { font-size: 2rem; font-weight: 900; color: var(--text-dark); }
+    .stat-label { font-size: 0.88rem; color: var(--text-muted); font-weight: 600; }
+
+    /* بطاقات الأقسام المستقلة */
+    .independent-page-card {
+      background: #ffffff; border: 1px solid var(--border-light);
+      border-radius: 16px; padding: 2.2rem; box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+    }
+    .page-header-box {
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 2px solid #f1f5f9; padding-bottom: 1.2rem; margin-bottom: 1.8rem;
+      flex-wrap: wrap; gap: 1rem;
+    }
+    .page-header-box h2 { font-size: 1.4rem; font-weight: 900; color: #0d382d; }
+    .page-header-box p { font-size: 0.88rem; color: var(--text-muted); margin-top: 0.2rem; }
+
+    /* خريطة المبادرات الكبيرة */
+    .map-wrapper-box {
+      margin-bottom: 2rem;
+      border: 2px solid #0f8f74;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(15, 143, 116, 0.1);
+    }
+    .map-header-bar {
+      background: #f0fdfa;
+      padding: 0.8rem 1.2rem;
+      border-bottom: 1px solid #ccfbf1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .map-header-bar h4 { font-size: 1rem; color: #0d382d; font-weight: 800; }
+    #map-container { width: 100%; height: 380px; z-index: 1; }
+
+    /* خريطة تحديد الموقع داخل نافذة الإضافة (Picker Map) */
+    .modal-map-picker-box {
+      border: 1px solid #0f8f74;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 0.5rem;
+    }
+    #picker-map-container {
+      width: 100%;
+      height: 200px;
+      z-index: 100;
+    }
+    .map-helper-text {
+      background: #f0fdfa;
+      padding: 0.5rem 0.8rem;
+      font-size: 0.78rem;
+      color: #0d382d;
+      border-bottom: 1px solid #ccfbf1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+    .btn-gps-locate {
+      background: #0f8f74;
+      color: #fff;
+      border: none;
+      padding: 0.25rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    /* قسم الفرص المستقل */
+    .opp-cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.2rem; }
+    .empty-state-card {
+      grid-column: 1 / -1; background: #fafbfc; border: 2px dashed #cbd5e1;
+      border-radius: 14px; padding: 3.5rem 1.5rem; text-align: center; color: var(--text-muted);
+    }
+    .opp-card {
+      background: #ffffff; border: 1px solid var(--border-light); border-radius: 12px;
+      padding: 1.4rem; display: flex; flex-direction: column; justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.02); transition: 0.2s;
+    }
+    .opp-card:hover { transform: translateY(-3px); box-shadow: 0 8px 16px rgba(0,0,0,0.06); }
+    .tag-category { font-size: 0.78rem; font-weight: 800; padding: 0.25rem 0.65rem; border-radius: 6px; }
+    .tag-green { background-color: var(--tag-green-bg); color: var(--tag-green-text); }
+    .tag-red { background-color: var(--tag-red-bg); color: var(--tag-red-text); }
+    .tag-blue { background-color: var(--tag-blue-bg); color: var(--tag-blue-text); }
+    .opp-card-title { font-size: 1.15rem; font-weight: 800; color: var(--text-dark); margin: 0.8rem 0 1.2rem; line-height: 1.4; }
+    .opp-card-footer {
+      display: flex; justify-content: space-between; align-items: center;
+      border-top: 1px solid var(--border-light); padding-top: 0.9rem; flex-wrap: wrap; gap: 0.5rem;
+    }
+    .btn-apply {
+      background-color: #0f8f74; color: #fff; border: none; border-radius: 6px;
+      padding: 0.5rem 1.2rem; font-weight: 700; font-size: 0.85rem; cursor: pointer;
+    }
+    .btn-apply:hover { background-color: #0b735c; }
+    .btn-view-map {
+      background-color: #0369a1; color: #fff; border: none; border-radius: 6px;
+      padding: 0.45rem 0.9rem; font-weight: 700; font-size: 0.8rem; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 0.3rem;
+    }
+
+    /* قسم تسجيل الحضور المستقل */
+    .attendance-scanner-card {
+      max-width: 750px; margin: 0 auto; background: #fafbfc; border: 1px solid var(--border-light);
+      border-radius: 14px; padding: 2rem; text-align: center;
+    }
+    .att-controls-row { display: flex; gap: 1rem; margin-bottom: 1.2rem; flex-wrap: wrap; text-align: right; }
+    .flex-2 { flex: 2; min-width: 250px; }
+    .flex-1 { flex: 1; min-width: 150px; }
+    .camera-stream-box {
+      width: 100%; max-width: 440px; min-height: 250px; background: #0f172a;
+      border-radius: 12px; margin: 1.2rem auto; overflow: hidden; border: 2px dashed #0f8f74;
+    }
+    .scanner-mode-switch { display: flex; justify-content: center; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; }
+    .btn-scan-main {
+      background-color: var(--hero-green-1); color: #fff; border: none; border-radius: 8px;
+      padding: 0.8rem 1.8rem; font-size: 0.95rem; font-weight: 800; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 0.5rem;
+    }
+    .btn-scan-file {
+      background-color: #0369a1; color: #fff; border: none; border-radius: 8px;
+      padding: 0.8rem 1.8rem; font-size: 0.95rem; font-weight: 800; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 0.5rem;
+    }
+    .btn-scan-cancel {
+      background-color: #ef4444; color: #fff; border: none; border-radius: 8px;
+      padding: 0.8rem 1.8rem; font-size: 0.95rem; font-weight: 800; cursor: pointer;
+    }
+    .feedback-banner {
+      margin-top: 1.2rem; padding: 1rem; border-radius: 8px; font-weight: 800;
+      background: #dcfce7; color: #15803d; text-align: center; border: 1px solid #86efac; font-size: 1rem;
+    }
+
+    /* النوافذ المنبثقة */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.6); display: none; align-items: center;
+      justify-content: center; z-index: 10000; padding: 1rem;
+    }
+    .modal-window {
+      background: #ffffff; border-radius: 14px; width: 100%; max-width: 600px;
+      max-height: 92vh; overflow-y: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    }
+    .modal-head {
+      background: #f8fafc; border-bottom: 1px solid var(--border-light); padding: 1rem 1.4rem;
+      display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10;
+    }
+    .modal-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #94a3b8; }
+    .modal-body { padding: 1.5rem; }
+    .modal-form { padding: 1.5rem; }
+    .f-group { margin-bottom: 1rem; text-align: right; }
+    .f-group label { display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.35rem; }
+    .f-row { display: flex; gap: 0.8rem; margin-bottom: 0.5rem; flex-wrap: wrap; }
+    .f-row .f-group { flex: 1; min-width: 200px; }
+    .clean-input, .clean-select {
+      width: 100%; padding: 0.75rem 0.9rem; border: 1px solid var(--border-light);
+      border-radius: 6px; font-size: 0.9rem; outline: none; background: #fff;
+    }
+    .clean-input:focus, .clean-select:focus { border-color: #0f8f74; }
+    .btn-modal-submit {
+      width: 100%; background: #0f8f74; color: #fff; border: none; padding: 0.85rem;
+      border-radius: 6px; font-weight: 800; font-size: 0.95rem; cursor: pointer;
+    }
+    .qr-preview-card {
+      display: flex; flex-direction: column; align-items: center; padding: 1.2rem;
+      background: #f8fafc; border-radius: 8px; margin-top: 1rem; border: 1px solid var(--border-light);
+    }
+    .skills-tags-wrap { display: flex; flex-wrap: wrap; gap: 0.3rem; justify-content: center; margin: 0.5rem 0; }
+    .skill-tag-pill { background: #e0f2fe; color: #0369a1; font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 700; }
+    .user-rank-pill { margin-top: 0.4rem; font-size: 0.75rem; background: #dcfce7; color: #15803d; padding: 0.25rem 0.7rem; border-radius: 12px; font-weight: 700; }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+  </style>
+</head>
+<body>
+
+  <!-- شاشة الدخول -->
+  <div id="auth-screen">
+    <div class="auth-card-box">
+      <div class="emblem"><i class="fa-solid fa-hands-holding-child"></i></div>
+      <h2>منصة تطوّع ولاية بني عباس</h2>
+      <p>سجل الدخول للوصول إلى لوحة المبادرات وتوثيق الحضور</p>
+
+      <div class="auth-toggle-btns">
+        <button id="auth-tab-login" class="active" onclick="switchAuthTab('login')">تسجيل الدخول</button>
+        <button id="auth-tab-signup" onclick="switchAuthTab('signup')">إنشاء حساب جديد</button>
+      </div>
+
+      <div id="auth-error-box" class="auth-error-msg"></div>
+
+      <form id="login-form" onsubmit="handleAuthSubmit(event)">
+        <div class="f-group">
+          <input type="email" id="auth-email-input" placeholder="البريد الإلكتروني" required class="clean-input">
+        </div>
+        <div class="f-group">
+          <input type="password" id="auth-password-input" placeholder="كلمة المرور" required class="clean-input">
+        </div>
+        <button type="submit" id="auth-submit-btn" class="btn-modal-submit">دخول للمنصة</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- واجهة المنصة -->
+  <div id="main-app-screen">
+    
+    <header class="top-navbar">
+      <div class="nav-container">
+        <div class="nav-brand" onclick="switchMainTab('home-section')">
+          <span class="brand-name">تطوّع بني عباس</span>
+          <div class="brand-logo-icon"><i class="fa-solid fa-hands-holding-child"></i></div>
+        </div>
+
+        <nav class="nav-links">
+          <button id="tab-btn-home" class="nav-tab-btn active" onclick="switchMainTab('home-section')">
+            <i class="fa-solid fa-house"></i> الرئيسية
+          </button>
+          <button id="tab-btn-opps" class="nav-tab-btn" onclick="switchMainTab('opps-section')">
+            <i class="fa-solid fa-map-location-dot"></i> الفرص والخريطة
+          </button>
+          <button id="tab-btn-attendance" class="nav-tab-btn" onclick="switchMainTab('attendance-section')">
+            <i class="fa-solid fa-qrcode"></i> تسجيل الحضور
+          </button>
+          <button class="nav-tab-btn" onclick="openModal('campaign-modal')">
+            <i class="fa-solid fa-circle-plus"></i> إضافة مبادرة
+          </button>
+          <button class="nav-tab-btn" onclick="openModal('mycard-modal')">
+            <i class="fa-solid fa-id-card"></i> بطاقتي
+          </button>
+        </nav>
+
+        <div class="nav-user-area">
+          <div class="user-rank-badge">
+            <i class="fa-solid fa-location-dot"></i>
+            <span id="user-top-email">بني عباس (52)</span>
+          </div>
+          <button class="logout-btn-visible" onclick="doLogout()">
+            <i class="fa-solid fa-power-off"></i>
+            <span>تسجيل خروج</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="page-content">
+
+      <!-- 1. قسم الرئيسية -->
+      <section id="home-section" class="app-section active">
+        <div class="hero-banner">
+          <div class="hero-inner">
+            <div class="sub-badge">ولاية بني عباس | Volunteers CRM & Coordination Hub</div>
+            <h1 class="hero-title">منصة إدارة وتنسيق الحملات التطوعية والإنقاذ المجتمعي</h1>
+            <p class="hero-description">
+              المنصة الرقمية الموحدة لربط مبادرات بلديات ولاية بني عباس بالمتطوعين، وتوثيق الساعات التطوعية، وتسجيل الحضور الميداني بالـ QR Code مع الخريطة الجغرافية.
+            </p>
+            <p class="hero-quote">"من الاحتياج… إلى الاستجابة، ومن التطوع… إلى الأثر"</p>
+            
+            <div class="hero-buttons">
+              <button class="btn-hero-white" onclick="switchMainTab('opps-section')">
+                <span>استكشف الفرص والخريطة</span>
+                <i class="fa-solid fa-map-location-dot"></i>
+              </button>
+              <button class="btn-hero-white" onclick="switchMainTab('attendance-section')" style="background:#0d382d; color:#fff;">
+                <span>قارئ الحضور (QR)</span>
+                <i class="fa-solid fa-qrcode"></i>
+              </button>
+              <button class="btn-hero-outline" onclick="openModal('campaign-modal')">
+                أنشئ مبادرة جديدة
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats-bar">
+          <div class="stat-box">
+            <div class="stat-top">
+              <i class="fa-regular fa-clock" style="color: #0d9488;"></i>
+              <span class="stat-num" id="stat-hours">0</span>
+            </div>
+            <div class="stat-label">ساعة تطوعية موثقة</div>
+          </div>
+
+          <div class="stat-box">
+            <div class="stat-top">
+              <i class="fa-regular fa-circle-check" style="color: #0d9488;"></i>
+              <span class="stat-num" id="stat-campaigns">0</span>
+            </div>
+            <div class="stat-label">مبادرة مكتملة بالولاية</div>
+          </div>
+
+          <div class="stat-box">
+            <div class="stat-top">
+              <i class="fa-solid fa-user-group" style="color: #2563eb;"></i>
+              <span class="stat-num" id="stat-volunteers">0</span>
+            </div>
+            <div class="stat-label">متطوع مسجل بالبلديات</div>
+          </div>
+
+          <div class="stat-box">
+            <div class="stat-top">
+              <i class="fa-regular fa-star" style="color: #f59e0b;"></i>
+              <span class="stat-num" id="stat-badges">0</span>
+            </div>
+            <div class="stat-label">وسام واستحقاق ميداني</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. قسم الفرص المتاحة والخريطة -->
+      <section id="opps-section" class="app-section">
+        <div class="independent-page-card">
+          <div class="page-header-box">
+            <div>
+              <h2><i class="fa-solid fa-map-location-dot" style="color: #0f8f74;"></i> الخريطة الجغرافية والفرص المتاحة</h2>
+              <p>تصفح مواقع المبادرات التطوعية جغرافياً عبر بلديات ولاية بني عباس الـ 10</p>
+            </div>
+            <button class="btn-apply" onclick="openModal('campaign-modal')" style="padding:0.6rem 1.4rem; font-size:0.95rem;">
+              <i class="fa-solid fa-plus-circle"></i> إضافة مبادرة جديدة
+            </button>
+          </div>
+
+          <!-- الخريطة الجغرافية الرئيسية -->
+          <div class="map-wrapper-box">
+            <div class="map-header-bar">
+              <h4><i class="fa-solid fa-map-pin" style="color: #0f8f74;"></i> خريطة مواقع المبادرات الميدانية (ولاية بني عباس)</h4>
+              <span style="font-size:0.8rem; color:#64748b;">انقر على علامة البلدية لمشاهدة تفاصيل المبادرة</span>
+            </div>
+            <div id="map-container"></div>
+          </div>
+
+          <!-- قائمة بطاقات الفرص -->
+          <h3 style="font-size: 1.15rem; color: #0d382d; margin-bottom: 1rem; font-weight: 800;">
+            <i class="fa-solid fa-list-ul"></i> قائمة المبادرات المطروحة:
+          </h3>
+          <div class="opp-cards-grid" id="opp-cards-container"></div>
+        </div>
+      </section>
+
+      <!-- 3. قسم تسجيل الحضور -->
+      <section id="attendance-section" class="app-section">
+        <div class="independent-page-card">
+          <div class="page-header-box">
+            <div>
+              <h2><i class="fa-solid fa-qrcode" style="color: #0f8f74;"></i> غرفة تسجيل الحضور وتوثيق الساعات (QR Code)</h2>
+              <p>المسح الميداني اللحظي لاعتماد حضور المتطوعين واحتساب ساعاتهم أوتوماتيكياً</p>
+            </div>
+            <span class="user-rank-pill" style="font-size:0.85rem; padding:0.4rem 1rem;">
+              <i class="fa-solid fa-circle" style="color:#15803d; font-size:0.6rem;"></i> الماسح جاهز
+            </span>
+          </div>
+
+          <div class="attendance-scanner-card">
+            <div class="att-controls-row">
+              <div class="f-group flex-2">
+                <label>اختر المبادرة المستهدفة:</label>
+                <select id="att-campaign-select" class="clean-select">
+                  <option value="">-- اضف مبادرة أولاً لتسجيل الحضور عليها --</option>
+                </select>
+              </div>
+              <div class="f-group flex-1">
+                <label>ساعات النشاط المعتمدة:</label>
+                <input type="number" id="att-session-hours" value="4" min="1" max="12" class="clean-input">
+              </div>
+            </div>
+
+            <!-- شاشة الكاميرا -->
+            <div id="qr-reader" class="camera-stream-box"></div>
+
+            <div class="scanner-mode-switch">
+              <button id="start-scanner-btn" class="btn-scan-main" onclick="startCameraScanner()">
+                <i class="fa-solid fa-camera"></i> تشغيل الكاميرا الحية
+              </button>
+
+              <label class="btn-scan-file" style="cursor: pointer;">
+                <i class="fa-solid fa-image"></i> مسح صورة الـ QR من الجهاز
+                <input type="file" id="qr-input-file" accept="image/*" style="display: none;" onchange="scanQRFromFile(this)">
+              </label>
+
+              <button id="stop-scanner-btn" class="btn-scan-cancel" style="display: none;" onclick="stopCameraScanner()">
+                <i class="fa-solid fa-stop"></i> إيقاف الكاميرا
+              </button>
+            </div>
+
+            <!-- بديل التسجيل السريع بدون كاميرا -->
+            <div style="margin-top: 1.5rem; padding-top: 1.2rem; border-top: 1px dashed #cbd5e1; text-align: center;">
+              <small style="color: #64748b; font-weight: bold; display: block; margin-bottom: 0.5rem;">
+                <i class="fa-solid fa-bolt"></i> خيار التوثيق اليدوي السريع:
+              </small>
+              <div style="display: flex; gap: 0.5rem; justify-content: center; max-width: 450px; margin: 0 auto;">
+                <select id="quick-att-vol-select" class="clean-select" style="font-size: 0.85rem;">
+                  <option value="">-- حدد المتطوع لتثبيت حضوره --</option>
+                </select>
+                <button onclick="recordQuickAttendance()" class="btn-apply" style="white-space: nowrap;">
+                  <i class="fa-solid fa-check"></i> تثبيت الحضور
+                </button>
+              </div>
+            </div>
+
+            <div id="scan-feedback" class="feedback-banner" style="display: none;"></div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ==================== النوافذ المنبثقة ==================== -->
+
+    <!-- نافذة إضافة مبادرة (مع خانة خريطة تحديد الموقع) -->
+    <div id="campaign-modal" class="modal-overlay">
+      <div class="modal-window">
+        <div class="modal-head">
+          <h3><i class="fa-solid fa-circle-plus"></i> إضافة مبادرة وتحديد موقعها على الخريطة</h3>
+          <button class="modal-close" onclick="closeModal('campaign-modal')">&times;</button>
+        </div>
+        <form id="campaign-form" class="modal-form">
+          <div class="f-group">
+            <label>عنوان المبادرة أو الاحتياج:</label>
+            <input type="text" id="camp-title" required placeholder="مثال: تنظيف الواحات وحملة غرس النخيل" class="clean-input">
+          </div>
+          
+          <div class="f-row">
+            <div class="f-group">
+              <label>البلدية المستهدفة (بني عباس):</label>
+              <select id="camp-city" required class="clean-select" onchange="onModalMunicipalityChange()">
+                <option value="بني عباس">بني عباس (المركز)</option>
+                <option value="كرزاز">كرزاز</option>
+                <option value="إقلي">إقلي</option>
+                <option value="الواتة">الواتة</option>
+                <option value="تبلبالة">تبلبالة</option>
+                <option value="أولاد خضير">أولاد خضير</option>
+                <option value="بني يخلف">بني يخلف</option>
+                <option value="القصابي">القصابي</option>
+                <option value="تيمودي">تيمودي</option>
+                <option value="مشرع هواري بومدين">مشرع هواري بومدين</option>
+              </select>
+            </div>
+            <div class="f-group">
+              <label>المجال والتخصص:</label>
+              <select id="camp-skill" required class="clean-select">
+                <option value="حماية الواحات والبيئة">حماية الواحات والبيئة الصحراوية</option>
+                <option value="إسعاف وطوارئ وإنقاذ">إسعاف أولي وطوارئ وإنقاذ</option>
+                <option value="تراث وسياحة وثقافة">تراث شعبي، سياحة وثقافة محلية</option>
+                <option value="تعليم ودعم مدرسي">تعليم ودعم مدرسي وتوجيه</option>
+                <option value="لوجستيات وإغاثة">لوجستيات، تنظيم وإغاثة</option>
+                <option value="إعلام ورقميات">إعلام، توثيق وتصميم رقمي</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- ==================== خانة تحديد موقع المبادرة على الخريطة ==================== -->
+          <div class="f-group">
+            <label><i class="fa-solid fa-map-pin" style="color: #0f8f74;"></i> حدد موقع المبادرة بالضبط على الخريطة:</label>
+            <div class="modal-map-picker-box">
+              <div class="map-helper-text">
+                <span><i class="fa-solid fa-hand-pointer"></i> انقر على الخريطة لتثبيت مكان المبادرة بدقة</span>
+                <button type="button" class="btn-gps-locate" onclick="locateUserGPSForCampaign()">
+                  <i class="fa-solid fa-crosshairs"></i> موقعي الحالي
+                </button>
+              </div>
+              <div id="picker-map-container"></div>
+            </div>
+            <!-- حقول خفية لحفظ خط الطول والعرض -->
+            <input type="hidden" id="camp-lat" value="30.1333">
+            <input type="hidden" id="camp-lng" value="-2.1667">
+            <small id="picker-coords-text" style="color: #0d8268; font-weight: 700; font-size: 0.78rem; display: block; margin-top: 0.3rem;">
+              الموقع المحدد: بني عباس (30.1333, -2.1667)
+            </small>
+          </div>
+
+          <div class="f-group">
+            <label>مستوى الأولوية:</label>
+            <select id="camp-urgency" class="clean-select">
+              <option value="عادية">عادية (مبادرة مجدولة)</option>
+              <option value="عاجلة">عاجلة (تدخل سريع)</option>
+              <option value="طارئة جداً">طارئة جداً (إنقاذ / طوارئ)</option>
+            </select>
+          </div>
+
+          <button type="submit" class="btn-modal-submit">نشر المبادرة وتثبيتها على الخريطة</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- نافذة بطاقتي وتسجيل متطوع -->
+    <div id="mycard-modal" class="modal-overlay">
+      <div class="modal-window">
+        <div class="modal-head">
+          <h3><i class="fa-solid fa-id-card"></i> بطاقة المتطوع الرقمية وتسجيل الكوادر</h3>
+          <button class="modal-close" onclick="closeModal('mycard-modal')">&times;</button>
+        </div>
+        <div class="modal-body text-center">
+          <div class="f-group text-right">
+            <label>اختر المتطوع لعرض هويته ورمز الـ QR:</label>
+            <select id="volunteer-select-qr" class="clean-select" onchange="generateSelectedVolunteerQR()">
+              <option value="">-- لا يوجد متطوعون مسجلون بعد --</option>
+            </select>
+          </div>
+
+          <div class="qr-preview-card" id="qr-preview-area" style="display: none;">
+            <div id="qrcode-canvas" style="background:#fff; padding:10px; border-radius:8px;"></div>
+            <h4 id="qr-volunteer-name" style="margin-top: 10px; color:#1e293b; font-size:1.1rem;"></h4>
+            <p id="qr-volunteer-municipality" style="font-size: 0.85rem; color: #0d8268; font-weight: 700;"></p>
+            <div id="qr-volunteer-skills-tags" class="skills-tags-wrap"></div>
+            <span class="user-rank-pill">متطوع معتمد - ولاية بني عباس</span>
+          </div>
+
+          <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid #e2e8f0;">
+
+          <h4 style="text-align:right; margin-bottom: 0.8rem; font-size:1rem; font-weight: 800; color: #0d382d;">
+            <i class="fa-solid fa-user-plus"></i> تسجيل متطوع جديد في ولاية بني عباس:
+          </h4>
+          
+          <form id="volunteer-form" class="modal-form" style="padding: 0;">
+            <div class="f-row">
+              <div class="f-group">
+                <label>الاسم واللقب الكامل <span style="color:red;">*</span></label>
+                <input type="text" id="vol-name" placeholder="أدخل اسمك الكامل" required class="clean-input">
+              </div>
+              <div class="f-group">
+                <label>رقم الهاتف للاتصال <span style="color:red;">*</span></label>
+                <input type="tel" id="vol-phone" placeholder="06XXXXXXXX" required class="clean-input">
+              </div>
+            </div>
+
+            <div class="f-row">
+              <div class="f-group">
+                <label>بلدية الإقامة بولاية بني عباس <span style="color:red;">*</span></label>
+                <select id="vol-city" required class="clean-select">
+                  <option value="">-- اختر بلديتك --</option>
+                  <option value="بني عباس">بني عباس (المركز)</option>
+                  <option value="كرزاز">كرزاز</option>
+                  <option value="إقلي">إقلي</option>
+                  <option value="الواتة">الواتة</option>
+                  <option value="تبلبالة">تبلبالة</option>
+                  <option value="أولاد خضير">أولاد خضير</option>
+                  <option value="بني يخلف">بني يخلف</option>
+                  <option value="القصابي">القصابي</option>
+                  <option value="تيمودي">تيمودي</option>
+                  <option value="مشرع هواري بومدين">مشرع هواري بومدين</option>
+                </select>
+              </div>
+              <div class="f-group">
+                <label>مجال التطوع الرئيسي <span style="color:red;">*</span></label>
+                <select id="vol-skill" required class="clean-select">
+                  <option value="">-- اختر المجال --</option>
+                  <option value="حماية الواحات والبيئة">حماية الواحات والبيئة الصحراوية</option>
+                  <option value="إسعاف وطوارئ وإنقاذ">إسعاف أولي وطوارئ وإنقاذ</option>
+                  <option value="تراث وسياحة وثقافة">تراث وسياحة وتوثيق محلي</option>
+                  <option value="تعليم ودعم مدرسي">تعليم ودعم مدرسي وتربوي</option>
+                  <option value="لوجستيات وإغاثة">لوجستيات وتوزيع وتنظيم ميداني</option>
+                  <option value="إعلام ورقميات">إعلام، تصوير، تصميم وصناعة محتوى</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="f-group">
+              <label><i class="fa-solid fa-wrench"></i> المهارات التقنية والعملية:</label>
+              <input type="text" id="vol-practical-skills" class="clean-input" placeholder="مثال: إسعافات، تصوير، قيادة 4x4، ترجمة...">
+            </div>
+
+            <div class="f-group">
+              <label><i class="fa-solid fa-palette"></i> الهوايات والاهتمامات:</label>
+              <input type="text" id="vol-hobbies" class="clean-input" placeholder="مثال: تخييم، خط، زراعة، إلكترونيات...">
+            </div>
+
+            <button type="submit" class="btn-modal-submit" style="margin-top:0.5rem;">
+              <i class="fa-solid fa-check"></i> حفظ المتطوع وتوليد بطاقة QR
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- سكريبت التشغيل والخريطة التفاعلية -->
+  <script>
+    // إحداثيات بلديات ولاية بني عباس الـ 10
+    const MUNICIPALITY_COORDS = {
+      "بني عباس": [30.1333, -2.1667],
+      "كرزاز": [29.4500, -1.4167],
+      "إقلي": [30.5000, -2.2833],
+      "الواتة": [29.8667, -1.8333],
+      "تبلبالة": [29.4000, -3.2500],
+      "أولاد خضير": [29.2167, -1.0667],
+      "بني يخلف": [29.1333, -0.9833],
+      "القصابي": [29.2833, -1.1833],
+      "تيمودي": [29.5833, -1.5333],
+      "مشرع هواري بومدين": [30.3333, -2.2167]
+    };
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDlvXAVdYZcfjTYynLMlieR5JBTS4JmNK8",
+      authDomain: "gggg-2904f.firebaseapp.com",
+      databaseURL: "https://gggg-2904f-default-rtdb.firebaseio.com",
+      projectId: "gggg-2904f",
+      storageBucket: "gggg-2904f.firebasestorage.app",
+      messagingSenderId: "646285342822",
+      appId: "1:646285342822:web:4cde1778807473f78255a7",
+      measurementId: "G-RL1R1XWVNE"
+    };
+
+    let db = null, auth = null, useFirebase = false;
+
+    try {
+      if (typeof firebase !== 'undefined' && firebase.apps) {
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        db = firebase.database();
+        auth = firebase.auth();
+        useFirebase = true;
+      }
+    } catch (e) { useFirebase = false; }
+
+    let authMode = "login";
+    let localVolunteers = [];
+    let localCampaigns = [];
+    let localAttendance = [];
+    let html5QrCodeScanner = null;
+    
+    // متغيرات الخريطة الكبيرة وخريطة تحديد الموقع
+    let leafletMap = null;
+    let mapMarkers = [];
+    let pickerMap = null;
+    let pickerMarker = null;
+
+    // تهيئة الخريطة الرئيسية
+    function initMap() {
+      if (leafletMap) return;
+      const mapEl = document.getElementById('map-container');
+      if (!mapEl) return;
+
+      leafletMap = L.map('map-container').setView([29.8, -1.9], 7);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: '© OpenStreetMap | ولاية بني عباس'
+      }).addTo(leafletMap);
+
+      updateMapMarkers();
+    }
+
+    // تحديث علامات المبادرات على الخريطة الرئيسية
+    function updateMapMarkers() {
+      if (!leafletMap) return;
+
+      mapMarkers.forEach(m => leafletMap.removeLayer(m));
+      mapMarkers = [];
+
+      localCampaigns.forEach(camp => {
+        // نستخدم الإحداثيات الدقيقة التي حددها المستخدم أو إحداثيات البلدية الافتراضية
+        const lat = camp.lat || (MUNICIPALITY_COORDS[camp.city] ? MUNICIPALITY_COORDS[camp.city][0] : 30.1333);
+        const lng = camp.lng || (MUNICIPALITY_COORDS[camp.city] ? MUNICIPALITY_COORDS[camp.city][1] : -2.1667);
+        
+        const marker = L.circleMarker([lat, lng], {
+          radius: 10,
+          fillColor: "#0f8f74",
+          color: "#ffffff",
+          weight: 2,
+          opacity: 1,
+          fillOpacity: 0.95
+        }).addTo(leafletMap);
+
+        const popupContent = `
+          <div style="font-family:'Tajawal',sans-serif; text-align:right;">
+            <h4 style="margin:0 0 5px; color:#0d382d; font-size:14px; font-weight:800;">${camp.title}</h4>
+            <p style="margin:0 0 4px; font-size:12px; color:#15803d; font-weight:700;">📍 بلدية ${camp.city}</p>
+            <p style="margin:0 0 6px; font-size:11px; color:#64748b;">المجال: ${camp.skill} (${camp.urgency})</p>
+            <a href="https://www.google.com/maps/search/?api=1&query=${lat},${lng}" target="_blank" style="display:inline-block; background:#0f8f74; color:#fff; padding:3px 8px; border-radius:4px; font-size:11px; text-decoration:none; font-weight:bold;">
+              فتح عبر GPS / خرائط Google
+            </a>
+          </div>
+        `;
+        marker.bindPopup(popupContent);
+        mapMarkers.push(marker);
+      });
+    }
+
+    // ==================== خريطة تحديد موقع المبادرة (Picker Map) ====================
+    function initPickerMap() {
+      const city = document.getElementById('camp-city').value;
+      const defaultCoords = MUNICIPALITY_COORDS[city] || [30.1333, -2.1667];
+
+      if (!pickerMap) {
+        pickerMap = L.map('picker-map-container').setView(defaultCoords, 11);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 18,
+          attribution: '© OpenStreetMap'
+        }).addTo(pickerMap);
+
+        // وضع علامة قابلة للتحريك
+        pickerMarker = L.marker(defaultCoords, { draggable: true }).addTo(pickerMap);
+
+        // التحديث عند سحب العلامة
+        pickerMarker.on('dragend', function(e) {
+          const pos = e.target.getLatLng();
+          setCampaignPickerCoords(pos.lat, pos.lng);
+        });
+
+        // التحديث عند النقر على أي مكان بالخريطة
+        pickerMap.on('click', function(e) {
+          pickerMarker.setLatLng(e.latlng);
+          setCampaignPickerCoords(e.latlng.lat, e.latlng.lng);
+        });
+      } else {
+        pickerMap.invalidateSize();
+        pickerMap.setView(defaultCoords, 11);
+        pickerMarker.setLatLng(defaultCoords);
+        setCampaignPickerCoords(defaultCoords[0], defaultCoords[1]);
+      }
+    }
+
+    function setCampaignPickerCoords(lat, lng) {
+      document.getElementById('camp-lat').value = lat.toFixed(6);
+      document.getElementById('camp-lng').value = lng.toFixed(6);
+      const city = document.getElementById('camp-city').value;
+      document.getElementById('picker-coords-text').textContent = 
+        `الموقع المحدد: بلدية ${city} (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+    }
+
+    // عند تغيير البلدية في قائمة الاختيار
+    window.onModalMunicipalityChange = function() {
+      const city = document.getElementById('camp-city').value;
+      const coords = MUNICIPALITY_COORDS[city] || [30.1333, -2.1667];
+      if (pickerMap && pickerMarker) {
+        pickerMap.setView(coords, 11);
+        pickerMarker.setLatLng(coords);
+        setCampaignPickerCoords(coords[0], coords[1]);
+      }
+    };
+
+    // تحديد الموقع الحالي للمستخدم عبر GPS
+    window.locateUserGPSForCampaign = function() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          if (pickerMap && pickerMarker) {
+            pickerMap.setView([lat, lng], 14);
+            pickerMarker.setLatLng([lat, lng]);
+            setCampaignPickerCoords(lat, lng);
+            alert("تم التقاط موقعك الجغرافي وتثبيته على الخريطة بنجاح!");
+          }
+        }, () => {
+          alert("تعذر الوصول لموقع GPS، يرجى تفعيل إذن الموقع أو النقر يدوياً على الخريطة.");
+        });
+      } else {
+        alert("المتصفح لا يدعم Geolocation.");
+      }
+    };
+
+    // تركيز الخريطة على مبادرة معينة
+    window.focusOnMap = function(lat, lng) {
+      switchMainTab('opps-section');
+      if (leafletMap) {
+        leafletMap.setView([lat, lng], 12, { animate: true });
+        mapMarkers.forEach(m => {
+          const pos = m.getLatLng();
+          if (Math.abs(pos.lat - lat) < 0.001 && Math.abs(pos.lng - lng) < 0.001) {
+            m.openPopup();
+          }
+        });
+      }
+      document.getElementById('map-container').scrollIntoView({ behavior: 'smooth' });
+    };
+
+    // التنقل بين الأقسام
+    window.switchMainTab = function(sectionId) {
+      document.querySelectorAll('.app-section').forEach(sec => sec.classList.remove('active'));
+      document.querySelectorAll('.nav-tab-btn').forEach(btn => btn.classList.remove('active'));
+
+      const targetSec = document.getElementById(sectionId);
+      if (targetSec) targetSec.classList.add('active');
+
+      if (sectionId === 'home-section') {
+        document.getElementById('tab-btn-home').classList.add('active');
+      } else if (sectionId === 'opps-section') {
+        document.getElementById('tab-btn-opps').classList.add('active');
+        setTimeout(() => {
+          initMap();
+          if (leafletMap) {
+            leafletMap.invalidateSize();
+            updateMapMarkers();
+          }
+        }, 200);
+      } else if (sectionId === 'attendance-section') {
+        document.getElementById('tab-btn-attendance').classList.add('active');
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    function checkLoginStatus() {
+      const savedUser = localStorage.getItem("ba_logged_user");
+      if (savedUser) {
+        document.getElementById("auth-screen").style.display = "none";
+        document.getElementById("main-app-screen").style.display = "block";
+        document.getElementById("user-top-email").textContent = savedUser;
+        syncData();
+      } else {
+        document.getElementById("auth-screen").style.display = "flex";
+        document.getElementById("main-app-screen").style.display = "none";
+      }
+    }
+
+    window.switchAuthTab = function(mode) {
+      authMode = mode;
+      document.getElementById("auth-error-box").style.display = "none";
+      document.getElementById("auth-tab-login").className = mode === "login" ? "active" : "";
+      document.getElementById("auth-tab-signup").className = mode === "signup" ? "active" : "";
+      document.getElementById("auth-submit-btn").textContent = mode === "login" ? "دخول للمنصة" : "إنشاء حساب جديد والدخول";
+    };
+
+    window.handleAuthSubmit = async function(e) {
+      e.preventDefault();
+      const email = document.getElementById("auth-email-input").value.trim();
+      const pass = document.getElementById("auth-password-input").value;
+      const errorBox = document.getElementById("auth-error-box");
+      errorBox.style.display = "none";
+
+      if (useFirebase && auth) {
+        try {
+          if (authMode === "login") {
+            await auth.signInWithEmailAndPassword(email, pass);
+          } else {
+            await auth.createUserWithEmailAndPassword(email, pass);
+          }
+          loginSuccess(email);
+        } catch (err) {
+          errorBox.style.display = "block";
+          errorBox.textContent = err.message || "بيانات الدخول غير صحيحة.";
+        }
+      } else {
+        loginSuccess(email);
+      }
+    };
+
+    function loginSuccess(email) {
+      localStorage.setItem("ba_logged_user", email);
+      document.getElementById("auth-screen").style.display = "none";
+      document.getElementById("main-app-screen").style.display = "block";
+      document.getElementById("user-top-email").textContent = email;
+      syncData();
+    }
+
+    window.doLogout = function() {
+      if (confirm("هل تريد تسجيل الخروج؟")) {
+        localStorage.removeItem("ba_logged_user");
+        if (useFirebase && auth) auth.signOut().catch(() => {});
+        document.getElementById("main-app-screen").style.display = "none";
+        document.getElementById("auth-screen").style.display = "flex";
+      }
+    };
+
+    window.openModal = function(id) {
+      const modal = document.getElementById(id);
+      if (modal) {
+        modal.style.display = "flex";
+        if (id === 'mycard-modal') generateSelectedVolunteerQR();
+        if (id === 'campaign-modal') {
+          setTimeout(initPickerMap, 250);
+        }
+      }
+    };
+
+    window.closeModal = function(id) {
+      const modal = document.getElementById(id);
+      if (modal) modal.style.display = "none";
+    };
+
+    function syncData() {
+      if (useFirebase && db) {
+        db.ref("volunteers").on("value", (snap) => {
+          localVolunteers = [];
+          const val = snap.val();
+          if (val) Object.keys(val).forEach(k => localVolunteers.push({ id: k, ...val[k] }));
+          updateAllUI();
+        }, () => fallbackToLocalStorage());
+
+        db.ref("campaigns").on("value", (snap) => {
+          localCampaigns = [];
+          const val = snap.val();
+          if (val) Object.keys(val).forEach(k => localCampaigns.push({ id: k, ...val[k] }));
+          updateAllUI();
+        }, () => fallbackToLocalStorage());
+
+        db.ref("attendance").on("value", (snap) => {
+          localAttendance = [];
+          const val = snap.val();
+          if (val) Object.keys(val).forEach(k => localAttendance.push({ id: k, ...val[k] }));
+          updateAllUI();
+        }, () => fallbackToLocalStorage());
+      } else {
+        fallbackToLocalStorage();
+      }
+    }
+
+    function fallbackToLocalStorage() {
+      localVolunteers = JSON.parse(localStorage.getItem("ba_volunteers") || "[]");
+      localCampaigns = JSON.parse(localStorage.getItem("ba_campaigns") || "[]");
+      localAttendance = JSON.parse(localStorage.getItem("ba_attendance") || "[]");
+      updateAllUI();
+    }
+
+    function updateAllUI() {
+      document.getElementById("stat-volunteers").textContent = localVolunteers.length;
+      document.getElementById("stat-campaigns").textContent = localCampaigns.filter(c => c.status === "مكتملة").length;
+      const totalHours = localAttendance.reduce((acc, curr) => acc + (Number(curr.hours) || 0), 0);
+      document.getElementById("stat-hours").textContent = totalHours;
+      document.getElementById("stat-badges").textContent = Math.floor(totalHours / 10);
+
+      renderOpportunities();
+      updateVolunteerSelect();
+      updateCampaignSelectUI();
+      updateQuickAttendanceSelect();
+      updateMapMarkers();
+    }
+
+    // عرض بطاقات الفرص
+    function renderOpportunities() {
+      const container = document.getElementById("opp-cards-container");
+      if (!container) return;
+      container.innerHTML = "";
+
+      if (localCampaigns.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state-card">
+            <i class="fa-solid fa-mountain-sun" style="font-size:3.5rem; color:#0d9488; margin-bottom:1rem;"></i>
+            <h3 style="font-size:1.3rem; color:#0d382d; margin-bottom:0.5rem;">القسم جاهز بانتظار أولى المبادرات</h3>
+            <p style="max-width:550px; margin:0 auto 1.5rem;">لا توجد مبادرات مسجلة حالياً في بلديات الولاية. انقر على الزر أدناه لنشر أول مبادرة وتثبيت موقعها على الخريطة!</p>
+            <button class="btn-apply" onclick="openModal('campaign-modal')" style="padding:0.6rem 1.5rem; font-size:0.95rem;">
+              <i class="fa-solid fa-plus-circle"></i> إضافة أول مبادرة الآن
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      localCampaigns.forEach(camp => {
+        let tagClass = "tag-green";
+        if (camp.skill && (camp.skill.includes("إسعاف") || camp.skill.includes("إنقاذ"))) tagClass = "tag-red";
+        if (camp.skill && (camp.skill.includes("تعليم") || camp.skill.includes("إعلام"))) tagClass = "tag-blue";
+
+        const lat = camp.lat || (MUNICIPALITY_COORDS[camp.city] ? MUNICIPALITY_COORDS[camp.city][0] : 30.1333);
+        const lng = camp.lng || (MUNICIPALITY_COORDS[camp.city] ? MUNICIPALITY_COORDS[camp.city][1] : -2.1667);
+
+        const card = document.createElement("article");
+        card.className = "opp-card";
+        card.innerHTML = `
+          <div>
+            <div class="opp-card-top">
+              <span class="tag-category ${tagClass}">${camp.skill}</span>
+              <span style="font-size:0.8rem; color:#64748b; font-weight:700;"><i class="fa-solid fa-bell"></i> أولوية ${camp.urgency}</span>
+            </div>
+            <h3 class="opp-card-title">${camp.title}</h3>
+          </div>
+          <div class="opp-card-footer">
+            <span style="font-size:0.88rem; font-weight:700; color:#0d382d;"><i class="fa-solid fa-location-dot" style="color:#0f8f74;"></i> بلدية ${camp.city}</span>
+            <div style="display:flex; gap:0.4rem;">
+              <button class="btn-view-map" onclick="focusOnMap(${lat}, ${lng})">
+                <i class="fa-solid fa-location-crosshairs"></i> موقعها بالخريطة
+              </button>
+              <button class="btn-apply" onclick="alert('تم تسجيل اهتمامك بمبادرة: ${camp.title} ببلدية ${camp.city}')">تطوع الآن</button>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // إضافة مبادرة وحفظ إحداثيات موقعها
+    document.getElementById("campaign-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const city = document.getElementById("camp-city").value;
+      const lat = parseFloat(document.getElementById("camp-lat").value);
+      const lng = parseFloat(document.getElementById("camp-lng").value);
+
+      const newCamp = {
+        id: "camp_" + Date.now(),
+        title: document.getElementById("camp-title").value.trim(),
+        city: city,
+        lat: lat,
+        lng: lng,
+        skill: document.getElementById("camp-skill").value,
+        urgency: document.getElementById("camp-urgency").value,
+        status: "نشطة",
+        createdAt: Date.now()
+      };
+
+      if (useFirebase && db) {
+        db.ref("campaigns").push(newCamp).then(() => finishCamp(newCamp)).catch(() => saveCampLocal(newCamp));
+      } else {
+        saveCampLocal(newCamp);
+      }
+    });
+
+    function saveCampLocal(camp) {
+      localCampaigns.push(camp);
+      localStorage.setItem("ba_campaigns", JSON.stringify(localCampaigns));
+      finishCamp(camp);
+    }
+    function finishCamp(camp) {
+      document.getElementById("campaign-form").reset();
+      closeModal('campaign-modal');
+      alert(`تم نشر المبادرة ببلدية ${camp.city} وتثبيت موقعها على الخريطة بنجاح!`);
+      updateAllUI();
+      switchMainTab('opps-section');
+      setTimeout(() => focusOnMap(camp.lat, camp.lng), 300);
+    }
+
+    // تسجيل متطوع
+    document.getElementById("volunteer-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const pSkills = document.getElementById("vol-practical-skills").value.trim();
+      const hobbies = document.getElementById("vol-hobbies").value.trim();
+
+      const newVol = {
+        id: "vol_" + Date.now(),
+        name: document.getElementById("vol-name").value.trim(),
+        phone: document.getElementById("vol-phone").value.trim(),
+        city: document.getElementById("vol-city").value,
+        skill: document.getElementById("vol-skill").value,
+        practicalSkills: pSkills ? pSkills.split(',').map(s => s.trim()) : [],
+        hobbies: hobbies ? hobbies.split(',').map(h => h.trim()) : [],
+        hours: 4,
+        createdAt: Date.now()
+      };
+
+      if (useFirebase && db) {
+        db.ref("volunteers").push(newVol).then(() => finishVol(newVol)).catch(() => saveVolLocal(newVol));
+      } else {
+        saveVolLocal(newVol);
+      }
+    });
+
+    function saveVolLocal(vol) {
+      localVolunteers.push(vol);
+      localStorage.setItem("ba_volunteers", JSON.stringify(localVolunteers));
+      finishVol(vol);
+    }
+    function finishVol(vol) {
+      document.getElementById("volunteer-form").reset();
+      alert(`تم تسجيلك كمتطوع ببلدية ${vol.city} بنجاح!`);
+      updateAllUI();
+      const sel = document.getElementById("volunteer-select-qr");
+      if (sel) { sel.value = vol.id; generateSelectedVolunteerQR(); }
+    }
+
+    function updateVolunteerSelect() {
+      const sel = document.getElementById("volunteer-select-qr");
+      if (!sel) return;
+      const cur = sel.value;
+      sel.innerHTML = `<option value="">-- اختر المتطوع لعرض هويته --</option>`;
+      localVolunteers.forEach(v => {
+        sel.innerHTML += `<option value="${v.id}">${v.name} (بلدية ${v.city})</option>`;
+      });
+      if (cur) sel.value = cur;
+      else if (localVolunteers.length > 0) { sel.selectedIndex = 1; generateSelectedVolunteerQR(); }
+    }
+
+    function updateQuickAttendanceSelect() {
+      const sel = document.getElementById("quick-att-vol-select");
+      if (!sel) return;
+      sel.innerHTML = `<option value="">-- اختر المتطوع --</option>`;
+      localVolunteers.forEach(v => {
+        sel.innerHTML += `<option value="${v.id}">${v.name} (${v.city})</option>`;
+      });
+    }
+
+    window.generateSelectedVolunteerQR = function() {
+      const sel = document.getElementById("volunteer-select-qr");
+      const canvas = document.getElementById("qrcode-canvas");
+      const previewArea = document.getElementById("qr-preview-area");
+      if (!sel || !canvas) return;
+
+      const volId = sel.value;
+      canvas.innerHTML = "";
+      if (!volId) { if (previewArea) previewArea.style.display = "none"; return; }
+
+      const vol = localVolunteers.find(v => v.id === volId);
+      if (vol) {
+        if (previewArea) previewArea.style.display = "flex";
+        document.getElementById("qr-volunteer-name").textContent = vol.name;
+        document.getElementById("qr-volunteer-municipality").textContent = `بلدية ${vol.city} - ولاية بني عباس`;
+
+        const tagsBox = document.getElementById("qr-volunteer-skills-tags");
+        tagsBox.innerHTML = `<span class="skill-tag-pill">${vol.skill}</span>`;
+        if (vol.practicalSkills) vol.practicalSkills.forEach(s => tagsBox.innerHTML += `<span class="skill-tag-pill" style="background:#fef3c7; color:#b45309;">${s}</span>`);
+        if (vol.hobbies) vol.hobbies.forEach(h => tagsBox.innerHTML += `<span class="skill-tag-pill" style="background:#f3e8ff; color:#6b21a8;">هواية: ${h}</span>`);
+
+        try {
+          new QRCode(canvas, {
+            text: `BENIABBES:${vol.id}:${vol.name}`,
+            width: 160,
+            height: 160,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.M
+          });
+        } catch(e) { console.error(e); }
+      }
+    };
+
+    function updateCampaignSelectUI() {
+      const sel = document.getElementById("att-campaign-select");
+      if (!sel) return;
+      sel.innerHTML = `<option value="">-- اختر المبادرة لتسجيل الحضور عليها --</option>`;
+      localCampaigns.filter(c => c.status === "نشطة").forEach(c => {
+        sel.innerHTML += `<option value="${c.title}">${c.title} (بلدية ${c.city})</option>`;
+      });
+    }
+
+    // ماسح الـ QR
+    window.startCameraScanner = function() {
+      const camp = document.getElementById("att-campaign-select").value;
+      if (!camp) { alert("يرجى اختيار المبادرة المستهدفة أولاً!"); return; }
+
+      const qrBox = document.getElementById("qr-reader");
+      qrBox.innerHTML = "";
+
+      html5QrCodeScanner = new Html5Qrcode("qr-reader");
+      const config = { fps: 15, qrbox: { width: 220, height: 220 }, aspectRatio: 1.0 };
+
+      html5QrCodeScanner.start(
+        { facingMode: "environment" },
+        config,
+        (decodedText) => handleQrDecoded(decodedText)
+      ).then(() => {
+        document.getElementById("start-scanner-btn").style.display = "none";
+        document.getElementById("stop-scanner-btn").style.display = "inline-flex";
+      }).catch(err => {
+        alert("تعذر فتح الكاميرا الحية (" + err + "). يمكنك استخدام زر 'مسح صورة الـ QR من الجهاز' أدناه.");
+      });
+    };
+
+    window.stopCameraScanner = function() {
+      if (html5QrCodeScanner) {
+        html5QrCodeScanner.stop().then(() => {
+          document.getElementById("start-scanner-btn").style.display = "inline-flex";
+          document.getElementById("stop-scanner-btn").style.display = "none";
+          document.getElementById("qr-reader").innerHTML = "";
+        }).catch(() => {});
+      }
+    };
+
+    window.scanQRFromFile = function(input) {
+      const camp = document.getElementById("att-campaign-select").value;
+      if (!camp) { alert("يرجى اختيار المبادرة المستهدفة أولاً!"); input.value = ""; return; }
+
+      if (input.files && input.files.length > 0) {
+        const file = input.files[0];
+        const html5QrCode = new Html5Qrcode("qr-reader");
+        html5QrCode.scanFile(file, true)
+          .then(decodedText => { handleQrDecoded(decodedText); input.value = ""; })
+          .catch(() => { alert("تعذر قراءة رمز QR من الصورة، يرجى التأكد من وضوحها."); input.value = ""; });
+      }
+    };
+
+    function handleQrDecoded(decodedText) {
+      let volName = "متطوع";
+      if (decodedText.startsWith("BENIABBES:")) {
+        const parts = decodedText.split(":");
+        volName = parts[2] || "متطوع";
+      } else {
+        try {
+          const parsed = JSON.parse(decodedText);
+          volName = parsed.name || "متطوع";
+        } catch(e) { volName = decodedText; }
+      }
+      recordAttendanceSuccess(volName);
+      stopCameraScanner();
+    }
+
+    window.recordQuickAttendance = function() {
+      const camp = document.getElementById("att-campaign-select").value;
+      if (!camp) { alert("يرجى اختيار المبادرة أولاً!"); return; }
+
+      const volSelect = document.getElementById("quick-att-vol-select");
+      if (!volSelect.value) { alert("يرجى تحديد المتطوع!"); return; }
+
+      const vol = localVolunteers.find(v => v.id === volSelect.value);
+      if (vol) recordAttendanceSuccess(vol.name);
+    };
+
+    function recordAttendanceSuccess(name) {
+      const camp = document.getElementById("att-campaign-select").value;
+      const hours = Number(document.getElementById("att-session-hours").value) || 4;
+
+      const entry = {
+        volunteerName: name,
+        campaignTitle: camp,
+        hours: hours,
+        timestamp: Date.now()
+      };
+
+      if (useFirebase && db) db.ref("attendance").push(entry);
+      localAttendance.push(entry);
+      localStorage.setItem("ba_attendance", JSON.stringify(localAttendance));
+
+      const fb = document.getElementById("scan-feedback");
+      fb.style.display = "block";
+      fb.innerHTML = `🎉 تم بنجاح توثيق حضور المتطوع: <strong>${name}</strong> بمبادرة (${camp}) واحتساب (+${hours} ساعات)!`;
+
+      updateAllUI();
+      setTimeout(() => { fb.scrollIntoView({ behavior: 'smooth' }); }, 200);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      checkLoginStatus();
+    });
+  </script>
+</body>
+</html>
